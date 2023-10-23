@@ -26,59 +26,27 @@ jobs:
           command: |
             echo "This is an integration step"
             exit 1
-          when: on_fail      # Even if the job fails, continue to the next jobs
+          when: always                    # Even if the job fails, continue to the next stages
 
   prod:
     docker:
       - image: python:3.6
     steps:
       - checkout
-      - run: echo "This is a deploy step"
-
-  artifact:
-    docker:
-      - image: python:3.6
-    steps:
-      - checkout
-      - run: echo "hello" > hello.txt
-      - store_artifacts:
-          path: hello.txt
-          destination: artifact-file
+      - run: echo "This is a deploy step."
 
 workflows:
   version: 2
   django:
     jobs:
-      - build:
-          filters:          # Run the job with a specific branch
-            branches:
-              only:
-                - main
+      - build
       - test:
           requires:
-            - build
-          filters:
-            branches:
-              only:
-                - main
+            - build 
       - integration:
           requires:
             - test
-          filters:
-            branches:
-              only:
-                - main
       - prod:
+          type: approval
           requires:
             - integration
-          filters:
-            branches:
-              only:
-                - main
-      - artifact:
-          requires:
-            - prod
-          filters:
-            branches:
-              only:
-                - main
