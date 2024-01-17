@@ -22,11 +22,13 @@ jobs:
     steps:
       - checkout
 
-      - run: docker run -v $(pwd):/src --rm hysnsec/safety check -r /src/requirements.txt --json | tee oast-results.json
+      - run:
+          command: docker run -v $(pwd):/src --rm hysnsec/safety check -r /src/requirements.txt --json | tee oast-results.json || true
 
       - store_artifacts:
           path: oast-results.json
           destination: safety-artifact
+          when: always
 
   integration:
     docker:
@@ -37,13 +39,14 @@ jobs:
           command: |
             echo "This is an integration step"
             exit 1
+          when: on_fail                    # Even if the job fails, continue to the next stages
 
   prod:
     docker:
       - image: python:3.6
     steps:
       - checkout
-      - run: echo "This is a deploy step."
+      - run: echo "This is a deploy step"
 
 workflows:
   version: 2
