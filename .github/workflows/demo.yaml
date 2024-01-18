@@ -3,7 +3,7 @@ name: Django                                  # workflow name
 on:
   push:                                       
     branches:                                 # similar to "only" in GitLab
-      - main
+      - main34
 
 jobs:
   build:
