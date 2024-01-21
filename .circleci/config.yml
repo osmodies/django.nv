@@ -1,35 +1,51 @@
 jobs:
   build:
-    machine: true
+    docker:
+      - image: python:3.6                   # similar to "image" in GitLab
     steps:
       - checkout
-      - run: echo "This is a build step"
+      - run: |                              # similar to "script" in GitLab
+          pip install -r requirements.txt
+          python manage.py check
 
   test:
-    machine: true
+    docker:
+      - image: python:3.6
     steps:
       - checkout
-      - run: echo "This is a test step"
-  
-  odc-backend:
-    machine: true
+      - run: |
+          pip install -r requirements.txt
+          python manage.py test taskManager
+
+  integration:
+    docker:
+      - image: python:3.6
     steps:
       - checkout
+      - run:
+          command: |
+            echo "This is an integration step"
+            exit 1
 
-      - run: chmod +x ./run-depcheck.sh && ./run-depcheck.sh || true
-
-      - store_artifacts:
-          path: reports/dependency-check-report.json
-          destination: depcheck-artifact
+  prod:
+    docker:
+      - image: python:3.6
+    steps:
+      - checkout
+      - run: echo "This is a deploy step."
 
 workflows:
   version: 2
-  webgoat:
+  django:
     jobs:
       - build
       - test:
           requires:
-            - build
-      - odc-backend:
+            - build 
+      - integration:
           requires:
             - test
+      - prod:
+          type: approval
+          requires:
+            - integration
