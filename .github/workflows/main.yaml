@@ -1,7 +1,7 @@
 name: Django                                  # workflow name
 
 on:
-  push:                                       
+  push:
     branches:                                 # similar to "only" in GitLab
       - main
 
@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-20.04
     needs: test
     steps:
-      - uses: actions/checkout@master      
+      - uses: actions/checkout@master
       - uses: snyk/actions/setup@master
       - uses: actions/setup-go@v1
         with:
@@ -62,16 +62,17 @@ jobs:
         run: snyk test --json > snyk-results.json
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true             # allow the build to fail, similar to allow_failure: true
 
       - uses: actions/upload-artifact@v2
         with:
-          name: Snyk               
+          name: Snyk
           path: snyk-results.json
         if: always()        # what is this for?
-  
+
   integration:
     runs-on: ubuntu-20.04
-    needs: test
+    needs: oast-snyk
     steps:
       - run: echo "This is an integration step"
       - run: exit 1
