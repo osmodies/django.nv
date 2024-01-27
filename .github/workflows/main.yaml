@@ -1,7 +1,7 @@
 name: Django                                  # workflow name
 
 on:
-  push:
+  push:                                       
     branches:                                 # similar to "only" in GitLab
       - main
 
@@ -41,38 +41,23 @@ jobs:
           pip install -r requirements.txt
           python manage.py test taskManager
 
-  oast-snyk:
+  secret_scanning:
     runs-on: ubuntu-20.04
     needs: test
     steps:
-      - uses: actions/checkout@master
-      - uses: snyk/actions/setup@master
-      - uses: actions/setup-go@v1
-        with:
-          go-version: "1.13"
+      - uses: actions/checkout@v2
 
-      - uses: actions/setup-node@v2
-        with:
-          node-version: '10.x'
-
-      - name: Install Node modules
-        run: npm install
-
-      - name: Run Snyk
-        run: snyk test --json > snyk-results.json
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        continue-on-error: true             # allow the build to fail, similar to allow_failure: true
+      - run: docker run --rm -v $(pwd):/src hysnsec/trufflehog filesystem --directory=/src --json > trufflehog-output.json
 
       - uses: actions/upload-artifact@v2
         with:
-          name: Snyk
-          path: snyk-results.json
-        if: always()        # what is this for?
-
+          name: TruffleHog
+          path: trufflehog-output.json
+        if: always()                        # what is this for?
+  
   integration:
     runs-on: ubuntu-20.04
-    needs: oast-snyk
+    needs: test
     steps:
       - run: echo "This is an integration step"
       - run: exit 1
