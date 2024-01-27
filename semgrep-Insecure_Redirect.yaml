@@ -1,0 +1,19 @@
+cat > Insecure_Redirect.yaml <<EOF 
+rules:
+- id: Insecure_Redirect
+  patterns:
+  - pattern: return redirect(request.GET.get('redirect', '/taskManager/'))
+  message: |
+    Detected Django app with Insecure Redirect. Do not deploy to production with this flag enabled
+    as it will leak sensitive information.
+  metadata:
+    cwe: 'CWE-601: Active Debug Code'
+    owasp: 'A01:2021 - Broken Access Control'
+    references:
+    - https://cwe.mitre.org/data/definitions/601.html
+  severity: WARNING
+  languages:
+  - python
+EOF
+
+semgrep -f Insecure_Redirect.yaml .
