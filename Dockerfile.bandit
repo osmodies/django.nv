@@ -1,0 +1,7 @@
+FROM python:3-alpine
+WORKDIR /
+RUN pip install bandit
+RUN apk update && apk upgrade
+RUN apk add git
+RUN git clone https://gitlab-ce-r3b5t1hx.lab.practical-devsecops.training/root/django-nv.git ./code-to-scan
+CMD [ "python -m bandit -r ./code-to-scan -o bandit.txt" ]
