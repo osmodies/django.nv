@@ -41,22 +41,20 @@ jobs:
           pip install -r requirements.txt
           python manage.py test taskManager
 
-  zap_baseline:
+  nuclei-scan:
     runs-on: ubuntu-20.04
     needs: test
     steps:
       - run: |
-           docker pull softwaresecurityproject/zap-stable:2.13.0
-           docker run --user root --rm -v $(pwd):/zap/wrk:rw -w /zap softwaresecurityproject/zap-stable:2.13.0 zap-baseline.py -t ${{ secrets.PROD_URL }} -J zap-output.json
-        continue-on-error: true
+           docker run --user $(id -u):$(id -g) -w /nuclei -v $(pwd):/nuclei:rw --rm projectdiscovery/nuclei:v2.9.6 -u https://prod-r3b5t1hx.lab.practical-devsecops.training -j -o nuclei-output.json
 
       - uses: actions/upload-artifact@v2
         with:
-          name: ZAP Scan
-          path: zap-output.json
+          name: nuclei scan
+          path: nuclei-output.json
         if: always()        # what is this for?
   
-  zap_baseline_marketplace:
+  nuclei-scan-market-place:
     runs-on: ubuntu-20.04
     needs: test
     steps:
@@ -65,13 +63,17 @@ jobs:
         with:
           ref: main
 
-      - name: ZAP Scan
-        uses: zaproxy/action-baseline@v0.4.0
+      - name: Nuclei - Vulnerability Scan
+        uses: projectdiscovery/nuclei-action@main
         with:
-          token: ${{ secrets.TOKEN }}
-          docker_name: 'softwaresecurityproject/zap-stable:2.13.0'
           target: ${{ secrets.PROD_URL }}
         continue-on-error: true
+
+      - name: GitHub Workflow artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: nuclei.log
+          path: nuclei.log    
 
   integration:
     runs-on: ubuntu-20.04
