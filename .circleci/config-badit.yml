@@ -17,14 +17,17 @@ jobs:
           pip install -r requirements.txt
           python manage.py test taskManager
 
-  semgrep:
+  sast:
     machine: true
     steps:
       - checkout
-      - run: docker run --rm -v ${PWD}:/src returntocorp/semgrep semgrep --config auto --output semgrep-output.json --json || true
+
+      - run: docker run --rm -v $(pwd):/src hysnsec/bandit -r /src -f json -o /src/bandit-output.json || true
+
       - store_artifacts:
-          path: semgrep-output.json
-          destination: semgrep-artifact
+          path: bandit-output.json
+          destination: bandit-artifact
+          when: always
 
   integration:
     docker:
@@ -35,7 +38,7 @@ jobs:
           command: |
             echo "This is an integration step"
             exit 1
-          when: on_fail         # Even if the job fails, continue to the next stages
+          when: on_fail           # Even if the job fails, continue to the next stages
 
   prod:
     docker:
@@ -52,12 +55,12 @@ workflows:
       - test:
           requires:
             - build
-      - semgrep:
+      - sast:
           requires:
             - test
       - integration:
           requires:
-            - semgrep
+            - sast
       - prod:
           type: approval
           requires:
