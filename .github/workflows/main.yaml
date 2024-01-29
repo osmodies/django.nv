@@ -1,7 +1,7 @@
 name: Django                                  # workflow name
 
 on:
-  push:                                       
+  push:
     branches:                                 # similar to "only" in GitLab
       - main
 
@@ -40,40 +40,6 @@ jobs:
           source env/bin/activate
           pip install -r requirements.txt
           python manage.py test taskManager
-
-  nuclei-scan:
-    runs-on: ubuntu-20.04
-    needs: test
-    steps:
-      - run: |
-           docker run --user $(id -u):$(id -g) -w /nuclei -v $(pwd):/nuclei:rw --rm projectdiscovery/nuclei:v2.9.6 -u https://prod-r3b5t1hx.lab.practical-devsecops.training -j -o nuclei-output.json
-
-      - uses: actions/upload-artifact@v2
-        with:
-          name: nuclei scan
-          path: nuclei-output.json
-        if: always()        # what is this for?
-  
-  nuclei-scan-market-place:
-    runs-on: ubuntu-20.04
-    needs: test
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          ref: main
-
-      - name: Nuclei - Vulnerability Scan
-        uses: projectdiscovery/nuclei-action@main
-        with:
-          target: ${{ secrets.PROD_URL }}
-        continue-on-error: true
-
-      - name: GitHub Workflow artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: nuclei.log
-          path: nuclei.log    
 
   integration:
     runs-on: ubuntu-20.04

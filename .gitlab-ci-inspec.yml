@@ -1,0 +1,35 @@
+image: docker:20.10
+
+services:
+  - docker:dind
+
+stages:
+  - build
+  - test
+  - release
+  - preprod
+  - integration
+  - prod
+
+job:
+  stage: build
+  script:
+    - echo "I'm a job"
+inspec:
+  stage: prod
+  only:
+    - main
+  before_script:
+    - mkdir -p ~/.ssh
+    - echo "$DEPLOYMENT_SERVER_SSH_PRIVKEY" | tr -d '\r' > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - eval "$(ssh-agent -s)"
+    - ssh-add ~/.ssh/id_rsa
+    - ssh-keyscan -t rsa $DEPLOYMENT_SERVER >> ~/.ssh/known_hosts
+  script:
+    - docker run --rm -v ~/.ssh:/root/.ssh -v $(pwd):/share hysnsec/inspec exec https://github.com/dev-sec/linux-baseline.git -t ssh://root@$DEPLOYMENT_SERVER -i ~/.ssh/id_rsa --chef-license accept --reporter json:/share/inspec-output.json
+  artifacts:
+    paths: [inspec-output.json]
+    when: always
+    expire_in: one week
+  allow_failure: true
