@@ -1,7 +1,7 @@
 name: Django                                  # workflow name
 
 on:
-  push:                                       
+  push:
     branches:                                 # similar to "only" in GitLab
       - main
 
@@ -41,9 +41,25 @@ jobs:
           pip install -r requirements.txt
           python manage.py test taskManager
 
+  oast-frontend:
+    name: Scan
+    runs-on: ubuntu-20.04
+    # Skip any PR created by dependabot to avoid permission issues
+    if: (github.actor != 'dependabot[bot]')
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: returntocorp/semgrep-action@v1
+        with:
+          config: >- # more at semgrep.dev/explore
+            p/security-audit
+            p/secrets
+            p/django
+        continue-on-error: true             # allow the build to fail, similar to "allow_failure: true" in GitLab
+
   integration:
     runs-on: ubuntu-20.04
-    needs: test
+    needs: oast-frontend
     steps:
       - run: echo "This is an integration step"
       - run: exit 1
