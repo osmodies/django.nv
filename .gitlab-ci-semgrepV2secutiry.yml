@@ -1,0 +1,61 @@
+image: docker:20.10
+
+services:
+  - docker:dind
+
+stages:
+  - build
+  - test
+  - release
+  - preprod
+  - integration
+  - prod
+
+build:
+  stage: build
+  image: python:3.6
+  before_script:
+   - pip3 install --upgrade virtualenv
+  script:
+   - virtualenv env
+   - source env/bin/activate
+   - pip install -r requirements.txt
+   - python manage.py check
+
+test:
+  stage: test
+  image: python:3.6
+  before_script:
+   - pip3 install --upgrade virtualenv
+  script:
+   - virtualenv env
+   - source env/bin/activate
+   - pip install -r requirements.txt
+   - python manage.py test taskManager
+
+semgrep:
+  image: returntocorp/semgrep-agent:v1
+  variables:
+    SEMGREP_RULES: >- # more at semgrep.dev/explore
+      p/security-audit
+      p/secrets
+      p/django
+  script: 
+    - semgrep-agent --gitlab-json > semgrep-output.json
+  artifacts:
+    paths: [semgrep-output.json]
+    when: always
+  allow_failure: true   #<--- allow the build to fail but don't mark it as such
+
+integration:
+  stage: integration
+  script:
+    - echo "This is an integration step"
+    - exit 1
+  allow_failure: true # Even if the job fails, continue to the next stages
+
+prod:
+  stage: prod
+  script:
+    - echo "This is a deploy step."
+  when: manual # Continuous Delivery
