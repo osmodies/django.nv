@@ -69,7 +69,7 @@ workflows:
             - test
       - integration:
           requires:
-            - sast
+            - semgrep
       - prod:
           type: approval
           requires:
