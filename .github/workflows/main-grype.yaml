@@ -3,51 +3,68 @@ name: Django                                  # workflow name
 on:
   push:
     branches:                                 # similar to "only" in GitLab
-      - main
+      - grype
 
 jobs:
   build:
     runs-on: ubuntu-20.04                   # similar to "image" in GitLab
     steps:
-      - run: echo "This is a build step"      # similar to "script" in GitLab
+      - uses: actions/checkout@v2
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.6'
+
+      - run: |
+          pip3 install --upgrade virtualenv
+          virtualenv env
+          source env/bin/activate
+          pip install -r requirements.txt
+          python manage.py check
 
   test:
     runs-on: ubuntu-20.04
     needs: build
     steps:
-      - run: echo "This is a test step"
+      - uses: actions/checkout@v2
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.6'
+
+      - run: |
+          pip3 install --upgrade virtualenv
+          virtualenv env
+          source env/bin/activate
+          pip install -r requirements.txt
+          python manage.py test taskManager
 
   container_scanning:
     runs-on: ubuntu-20.04
     needs: test
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
       - name: build local container
         uses: docker/build-push-action@v2
         with:
-          tags: django.nv:${{ github.sha }}
+          tags: django.nv:latest
           push: false
           load: true
 
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+      - name: Scan image
+        uses: anchore/scan-action@v2
         with:
-          image-ref: 'django.nv:${{ github.sha }}'
-          format: 'json'
-          exit-code: '1'
-          ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'MEDIUM'
+          image: "django.nv:latest"
+          fail-build: true          # fail a build when issues found
         continue-on-error: true             # allow the build to fail, similar to "allow_failure: true" in GitLab
 
   integration:
     runs-on: ubuntu-20.04
-    needs: container_scanning
+    needs: oast-frontend
     steps:
       - run: echo "This is an integration step"
       - run: exit 1
@@ -57,4 +74,4 @@ jobs:
     runs-on: ubuntu-20.04
     needs: integration
     steps:
-      - run: echo "This is a deploy step"
+      - run: echo "This is a deploy step."
