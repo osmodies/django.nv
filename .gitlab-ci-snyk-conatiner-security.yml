@@ -1,0 +1,56 @@
+image: docker:20.10
+
+services:
+  - docker:dind
+
+stages:
+  - build
+  - test
+  - release
+  - preprod
+  - integration
+  - prod
+
+docker:
+  stage: build
+  before_script:
+    - echo $CI_REGISTRY_PASS | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+  script:
+    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA .   # Build the application into Docker image
+  after_script:
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA         # Push the image into registry
+
+container_scanning:
+  stage: test
+  script:
+    - docker run --rm -e SNYK_TOKEN=$SNYK_TOKEN -e USER_ID=1234 -e SNYK_REGISTRY_USERNAME=$CI_REGISTRY_USER -e SNYK_REGISTRY_PASSWORD=$CI_REGISTRY_PASS -v "$(pwd):/project" snyk/snyk-cli:docker container test --json $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA | tee snyk-output.json
+  artifacts:
+    paths: [snyk-output.json]
+    when: always
+    expire_in: one week
+  allow_failure: true   #<--- allow the build to fail but don't mark it as such
+
+test:
+  stage: test
+  image: python:3.6
+  needs: ["container_scanning"]
+  before_script:
+   - pip3 install --upgrade virtualenv
+  script:
+   - virtualenv env
+   - source env/bin/activate
+   - pip install -r requirements.txt
+   - python manage.py test taskManager
+
+integration:
+  stage: integration
+  script:
+    - echo "This is an integration step"
+    - exit 1
+  allow_failure: true # Even if the job fails, continue to the next stages
+
+prod:
+  stage: prod
+  script:
+    - echo "This is a deploy step."
+  when: manual # Continuous Delivery
