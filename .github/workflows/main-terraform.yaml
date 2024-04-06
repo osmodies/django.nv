@@ -3,7 +3,7 @@ name: Terraform                               # workflow name
 on:
   push:                                       
     branches:                                 # similar to "only" in GitLab
-      - main
+      - main-terraform
 
 jobs:
     tflint:
