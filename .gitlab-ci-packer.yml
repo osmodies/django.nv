@@ -1,0 +1,17 @@
+image: docker:20.10
+
+services:
+  - docker:dind
+
+stages:
+  - build
+  - test
+  - release
+  - preprod
+  - integration
+  - prod
+
+job:
+  stage: build
+  script:
+    - echo "I'm a job"
